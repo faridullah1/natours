@@ -56,6 +56,15 @@ userSchema.pre('save', async function(next) {
 	next();
 });
 
+userSchema.pre('save', function(next) {
+	if (!this.isModified('password') || this.isNew) return next();
+
+	// We subtracted 1sec, so that passwordChangedAt value should always be greater than token creation time;
+	this.passwordChangedAt = Date.now() - 1000;
+
+	next();
+});
+
 userSchema.methods.correctPassword = async function (condidatePassword, userPassword) {
 	return await bcrypt.compare(condidatePassword, userPassword);
 }
