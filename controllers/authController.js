@@ -5,13 +5,19 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const sendEmail = require('../utils/email');
 const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
 const signToken = id => jwt.sign({ id }, process.env.JWT_SECRET, {
 	expiresIn: process.env.JWT_EXPIRES_IN
 });
 
 exports.signUp = catchAsync(async (req, res, next) => {
-	const newUser = await User.create(req.body);
+	const newUser = await User.create({
+		name: req.body.name,
+		email: req.body.email,
+		password: req.body.password,
+		passwordConfirm: req.body.passwordConfirm
+	});
 
 	const token = signToken(newUser._id);
 
@@ -24,25 +30,19 @@ exports.signUp = catchAsync(async (req, res, next) => {
 	});
 });
 
-exports.login = async (req, res, next) => {
+exports.login = catchAsync(async (req, res, next) => {
 	const { email, password } = req.body;
 
 	// 1) check if email and password exists;
-	if (!email && !password) {
-		return res.status(400).json({
-			status: 'fail',
-			message: 'email and password is required.'
-		});
+	if (!email || !password) {
+		return next(new AppError('email and password are required.', 400));
 	}
 
 	// 2) check if user exists and password is correct;
 	const user = await User.findOne({ email }).select('+password');
 
 	if (!user || !(await user.correctPassword(password, user.password))) {
-		return res.status(401).json({
-			status: 'fail',
-			message: 'Invalid email or password.'
-		});
+		return next(new AppError('Invalid email or password.'), 401);
 	}
 
 	// 3) if everything ok, send token to client;
@@ -51,9 +51,9 @@ exports.login = async (req, res, next) => {
 		status: 'success', 
 		token
 	});
-}
+});
 
-exports.protect = async (req, res, next) => {
+exports.protect = catchAsync(async (req, res, next) => {
 	// 1) Getting token and checking if it is there;
 	let token;
 	if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -61,40 +61,23 @@ exports.protect = async (req, res, next) => {
 	}
 
 	if (!token) {
-		return res.status(401).json({
-			status: 'fail',
-			message: 'You are not logged in. Please login to get access.'
-		});
+		return next(new AppError('You are not logged in. Please login to get access.', 401));
 	}
 
 	// 2) Token verification;
 	let decoded;
-	try {
-		decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-	}
-	catch (error) {
-		return res.status(401).json({
-			status: 'fail',
-			message: error
-		})
-	}
+	decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
 	// 3) Check if user still exists;
 	if (decoded) {
 		const currentUser = await User.findById(decoded.id);
 		if (!currentUser) {
-			return res.status(401).json({
-				status: 'fail',
-				message: 'The user belongs to the token does no longer exists.'
-			});
+			return next(new AppError('The user belongs to the token does no longer exists.', 401));
 		}
 
 		// 4) Check if user changed password after the token was issued.
 		if (await currentUser.passwordChangedAfter(decoded.iat)) {
-			return res.status(401).json({
-				status: 'fail',
-				message: 'User recently changed password, please login again.'
-			});
+			return next(new AppError('User recently changed password, please login again.', 401))
 		}
 
 		req.user = currentUser;
@@ -102,15 +85,12 @@ exports.protect = async (req, res, next) => {
 	
 	// Grant access to protected route;
 	next();
-}
+});
 
 exports.restrictTo = (...roles) => {
 	return (req, res, next) => {
 		if (!roles.includes(req.user.role)) {
-			return res.status(403).json({
-				status: 'fail',
-				message: 'You do not have permission to perform this action.'
-			});
+			return next('You do not have permission to perform this action.', 403)
 		}
 
 		next();
