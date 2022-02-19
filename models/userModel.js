@@ -41,7 +41,12 @@ const userSchema = mongoose.Schema({
 	},
 	passwordChangedAt: Date,
 	passwordResetToken: String,
-	passwordResetExpires: Date
+	passwordResetExpires: Date,
+	active: {
+		type: Boolean,
+		default: true,
+		select: false
+	}
 });
 
 userSchema.pre('save', async function(next) {
@@ -62,6 +67,12 @@ userSchema.pre('save', function(next) {
 	// We subtracted 1sec, so that passwordChangedAt value should always be greater than token creation time;
 	this.passwordChangedAt = Date.now() - 1000;
 
+	next();
+});
+
+// QUERY MIDDLEWHERE
+userSchema.pre(/^find/, function(next) {
+	this.find({ active: { $ne: false } });
 	next();
 });
 
