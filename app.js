@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongooseSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -19,8 +21,12 @@ const app = express();
 
 // 1) GLOBAL MIDDLEWARES
 
+app.use(cors({credentials: true, origin: 'http://localhost:3000'}));
+
 // Set security http headers;
-app.use(helmet());
+app.use(helmet({
+	contentSecurityPolicy: false
+}));
 
 // Development logging;
 if (process.env.NODE_ENV === 'development ') {
@@ -43,6 +49,7 @@ app.use('/api', limiter);
 
 // Body parser; reading data from request body;
 app.use(express.json({ limit: '10kb'}));
+app.use(cookieParser());
 
 // Data sanitization again NoSQL query injection;
 app.use(mongooseSanitize());
@@ -52,6 +59,11 @@ app.use(xss());
 
 // Serving static files;
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Test Middleware
+app.use((req, res, next) => {
+	next();
+});
 
 // Routes
 app.use('/', viewRouter);
