@@ -7,6 +7,7 @@ const mongooseSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const compression = require('compression');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -19,7 +20,6 @@ const bookingRouter = require('./routes/bookingRoutes');
 const app = express();
 
 // 1) GLOBAL MIDDLEWARES
-
 app.use(cors({credentials: true, origin: 'http://localhost:3000'}));
 
 // Set security http headers;
@@ -58,6 +58,8 @@ app.use(xss());
 
 // Serving static files;
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(compression());
 
 // Test Middleware
 app.use((req, res, next) => {
