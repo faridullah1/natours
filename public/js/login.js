@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { showAlert } from './alert';
 
 export const login = async (email, password) => {
 	axios.defaults.withCredentials = true
@@ -15,16 +16,13 @@ export const login = async (email, password) => {
 			},
 		});
 
-		if (res.data.status === 'success') {
-			alert('Successfully logged in');
+		if(res['data'].status === 'success') {
+			showAlert('success', 'Successfully logged in');
 			setTimeout(() => {
 				location.assign('/');
 			}, 1500);
 		}
-	
-		console.log(res.data);
-
 	} catch(err) {
-		alert(err.response.data.message);
+		showAlert('error', err['response'].data.message);
 	}
 };

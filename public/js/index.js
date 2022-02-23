@@ -2,7 +2,6 @@ import '@babel/polyfill';
 import { login } from './login';
 import { displayMap } from './mapBox';
 
-
 // DOM Elements
 const loginFormElem = document.querySelector('.form');
 const mapElem = document.getElementById('map');
