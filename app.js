@@ -20,7 +20,9 @@ const bookingRouter = require('./routes/bookingRoutes');
 const app = express();
 
 // 1) GLOBAL MIDDLEWARES
-app.use(cors({credentials: true, origin: 'http://localhost:3000'}));
+// Implement Cross origin resource sharing;
+app.use(cors());
+app.options('*', cors());
 
 // Set security http headers;
 app.use(helmet({

@@ -9,7 +9,6 @@ export const login = async (email, password) => {
 			method: 'POST',
 			url: '/api/v1/users/login',
 			withCredentials: true,  // Don't forget to specify this if you need cookies
-			credentials: 'include',
 			data: {
 				email,
 				password
